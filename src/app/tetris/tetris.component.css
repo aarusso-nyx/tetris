@@ -1,0 +1,71 @@
+.container {
+    padding: 2.5em;
+    /* border: 1px solid orange; */
+
+    display: flex;
+    height: 100%;
+}
+
+.column {
+    padding: 2em;
+    display: flex;
+    flex-direction: column;
+}
+
+
+.column.left {
+    flex: 0 0 auto;
+    width: 360px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2em;
+}
+
+.column.center {
+    flex: 0 0 auto;
+    width: 360px;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 3em;
+    background-color: #707070;
+}
+
+.column.right {
+    flex: 1 1 auto;
+}
+
+
+
+#tetris {
+    border: 5px solid teal;
+    background-color: black;
+}
+
+#gscore {
+    border: 5px solid #d0d0d0;
+    background-color: black;
+    border-radius: 5px;
+}
+
+
+.score {
+    align-self: stretch;
+
+    color: limegreen;
+    font-weight: 800;
+    font-size: 20px;
+    font-family: monospace;
+    border: limegreen 3px solid;
+    background-color: black;
+
+    padding-left: 1em;
+}
+
+
+.buttons {
+    align-self: stretch;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}

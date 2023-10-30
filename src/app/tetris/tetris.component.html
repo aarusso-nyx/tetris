@@ -1,0 +1,27 @@
+<div class="container">
+    <div class="column left">
+        <div class="score">
+            <p>Score: {{ score * 100 }}</p>
+            <p>Lines: {{ lines }}</p>
+            <p>Level: {{ level }}</p>
+            <p>Moves: {{ moves }}</p>
+        </div>
+
+        <svg #gscore id="gscore" width="300px" height="100px"></svg>
+
+        <div class="score">
+            <p *ngFor="let p of count; let i=index">{{ i }}: {{ p }}</p>
+        </div>
+
+        <div class="buttons">
+            <button tabindex="-1" (click)="reset()">Start</button>
+            <button tabindex="-1" (click)="pause = !pause">Pause</button>
+        </div>
+    </div>
+    <div class="column center">
+        <svg #tetris id="tetris" width="300px" height="600px"></svg>
+    </div>
+    <div class="column right">
+    </div>
+</div>
+  
