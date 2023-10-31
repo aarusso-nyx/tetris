@@ -31,21 +31,26 @@
     background-color: #707070;
 }
 
-.column.right {
-    flex: 1 1 auto;
-}
-
-
-
 #tetris {
     border: 5px solid teal;
     background-color: black;
+    width: 300px;
+    height: 600px;
+}
+
+.mono {
+    font-family: monospace;
+    font-weight: 800;
+    font-size: 20px;
+    font-family: monospace;
 }
 
 #gscore {
-    border: 5px solid #d0d0d0;
+    border: goldenrod 3px solid;
     background-color: black;
     border-radius: 5px;
+    width: 360px;
+    height: 180px;
 }
 
 
@@ -53,12 +58,9 @@
     align-self: stretch;
 
     color: limegreen;
-    font-weight: 800;
-    font-size: 20px;
-    font-family: monospace;
     border: limegreen 3px solid;
     background-color: black;
-
+    border-radius: 5px;
     padding-left: 1em;
 }
 

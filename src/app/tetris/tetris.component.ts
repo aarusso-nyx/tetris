@@ -145,9 +145,9 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
   }
 
   private addScore(board: Board, lines: number): void {
-    const levels = [ 0, 5, 10, 15, 20, 167, 217, 274, 340, 415, 501]
+    const levels = [ 0, 25, 55, 85, 125, 165, 215, 275, 340, 415, 500];
     const weight = [ 0, 1, 3, 10, 30 ];
-    
+
     if ( lines < 0 || lines > 4) {
       return;
     }
@@ -171,9 +171,11 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
       // Reward the player for clearing the board but only once per level; 
       if ( !this._clear[this._level] ) {
         this._clear[this._level] = true;
-        this._score *= 1.2;     // 20% bonus
+        this._score *= 1.5;     // 50% bonus
       }
     }
+
+    this.renderScore();
   }
   /////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
@@ -182,7 +184,7 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
     this._lines = 0;
     this._score = 0;
     this._level = 1;
-    this._count = [ 0, 0, 0, 0, 0 ];
+    this._count = [ 100, 80, 40, 30, 14 ];
     this._pause = false;
     this._speed = 500;
     this.board = Array.from({ length: this.rows }, () => emptyRow(this.cols));
@@ -275,7 +277,76 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
         .attr('stroke-width', r/2)
         .attr('rx', r)
         .attr('ry', r);
+
+        this.renderScore();
   }
+  
+  // render a horizontal bargraf of the count vector
+  private renderScore(): void {
+    if ( isNil(this.svg_score) ) 
+      return;
+
+    const n = this._count.length;
+    const W = 10;
+    const H = 5;
+
+    const m = 1;
+
+    const w = (W - 2*m) / n;
+    const h = (H - 2*m) / Math.max(...this._count);
+
+
+    this.svg_score.selectAll(`.bar`).remove();
+    this.svg_score.selectAll(`.bar`)
+        .data(this._count)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', (d: number, i: number) => (i+0.15)*w+m)
+        .attr('y', (d: number, i: number) => (H - d*h - m))
+        .attr('width', 0.7*w)
+        .attr('height', (d: number) => d*h)
+        .attr('fill', 'orange')
+        .attr('opacity', 0.75)
+        .attr('stroke', 'goldenrod')
+        .attr('stroke-width', 0.1)
+        .attr('rx', 0.1)
+        .attr('ry', 0.1);
+
+    this.svg_score.selectAll(`.bar-label`).remove();
+
+    this.svg_score.selectAll(`.bar-label`)
+        .data(this._count)
+        .enter()
+        .append('text')
+        .attr('class', 'bar-label')
+        .attr('x', (d: number, i: number) => (i+0.5)*w + m)
+        .attr('y',(d: number, i: number) =>  (H - d*h - m - 0.3))
+        .attr('text-anchor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .attr('font-size', 0.4)
+        .attr('fill', '#ccc')
+        .text((d: number) => d);
+
+  
+    this.svg_score.selectAll(`.bar-axis`).remove();
+
+    this.svg_score.selectAll(`.bar-axis`)
+        .data(['drops', 'singles', 'doubles', 'triples', 'tetris'])
+        .enter()
+        .append('text')
+        .attr('class', 'bar-axis')
+        .attr('x', (d: number, i: number) => (i+0.5)*w + m)
+        .attr('y',(d: number, i: number) =>  (H - m + 0.35))
+        .attr('text-anchor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .attr('font-size', 0.3)
+        .attr('fill', 'orange')
+        .text((d: string) => d);
+
+  
+  }
+  
   
   /////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
@@ -284,7 +355,7 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
                   .attr('viewBox', '0 0 10 20');
     
     this.svg_score = d3.select(this.gscore.nativeElement)
-                  .attr('viewBox', '0 0 10 10');
+                  .attr('viewBox', '0 0 10 5');
 
 
 
