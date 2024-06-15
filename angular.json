@@ -85,10 +85,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "tetris:build:production"
+              "buildTarget": "tetris:build:production"
             },
             "development": {
-              "browserTarget": "tetris:build:development"
+              "buildTarget": "tetris:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -96,7 +96,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "tetris:build"
+            "buildTarget": "tetris:build"
           }
         },
         "test": {
