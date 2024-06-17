@@ -1,0 +1,135 @@
+.container {
+  width: fit-content;
+  padding: 32px;
+  margin: auto;
+  background-color: black;
+  display: flex;
+  flex-direction: column;
+  }
+
+.mono {
+    font-family: 'Press Start 2P', cursive;
+}
+
+.score { 
+    padding: 16px 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    color: white;
+    font-size: 24px;
+}
+
+.status {
+  padding: 10px 0;
+  display: flex;
+  flex-direction: row;
+    gap: 16px;
+}
+
+
+
+  
+#board {
+  --size: 32px;
+  width: calc(28 * var(--size));
+  height: calc(31 * var(--size));
+}
+
+.ghost {
+  --size: 32px;
+
+  width:  var(--size);
+  height: var(--size);
+  background-size: 500% 500%;
+  background-image: url('/assets/pacman/ghosts.png');
+}
+
+/* Individual ghost origins using CSS variables */
+.blinky {
+  --origin-x: 0px;
+  --origin-y: 0px;
+}
+
+.pinky {
+  --origin-x: 75px;
+  --origin-y: 0px;
+  }
+  
+  .inky {
+    --origin-x: 0px;
+    --origin-y: 76px;
+}
+
+.clyde {
+  --origin-x: 75px;
+  --origin-y: 76px;
+}
+
+.dead { 
+  opacity: 0.3;
+}
+
+.ghosting {
+  animation: ghost-animation 1s steps(1) infinite;
+}
+
+/* Generalized ghost animation using CSS variables */
+@keyframes ghost-animation {
+  0% { background-position: var(--origin-x) var(--origin-y); }
+  25% { background-position: calc(var(--origin-x) - 42px) var(--origin-y); }
+  50% { background-position: calc(var(--origin-x) - 42px) calc(var(--origin-y) - 44px); }
+  75% { background-position: var(--origin-x) calc(var(--origin-y) - 44px); }
+  100% { background-position: var(--origin-x) var(--origin-y); }
+}
+
+.spooky {
+  animation: ghosting-animation 1s steps(4) infinite;
+}
+
+@keyframes ghosting-animation {
+  /* 0% { x: 0;  y: 0; }
+  25% { x: -165px; y: 0; }
+  50% { x: -330px; y: 0; }
+  75% { x: -495px; y: 0; }
+  100% { x: 0; y: 0; } */
+
+  0% { fill: green; }
+  25% { fill: red; }
+  50% { fill: blue; }
+  75% { fill: yellow; }
+  100% { fill: green; }
+}
+
+
+.pacman {
+  --size: 32px;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: conic-gradient(yellow 25%, transparent 25% 75%, yellow 75%);
+  animation: chomping 0.5s infinite;
+  position: relative;
+  rotate: -90deg;
+}
+
+.pacman::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 66%;
+  width: 12%;
+  height: 12%;
+  border-radius: 50%;
+  background: black;
+}
+
+
+@keyframes chomping {
+  0%, 100% {
+    background: conic-gradient(yellow 48%, transparent 48% 52%, yellow 52%);
+  }
+  50% {
+    background: conic-gradient(yellow 40%, transparent 40% 60%, yellow 60%);
+  }
+}

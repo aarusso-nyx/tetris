@@ -1,0 +1,17 @@
+<div class="container">
+    <div class="status">
+        <div class="ghost ghosting blinky"></div>
+        <div class="ghost ghosting pinky"></div>
+        <div class="ghost ghosting inky"></div>
+        <div class="ghost ghosting clyde"></div>
+        <div class="pacman"></div>
+    </div>
+
+    <div class="score mono">
+        <div>Score: {{ pacman.score | async  }}</div>
+        <div>Level: {{ pacman.level | async  }}</div>
+        <div>Lives: {{ pacman.lives | async  }}</div>
+    </div>
+
+    <svg #board id="board"></svg>
+</div>
