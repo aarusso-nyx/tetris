@@ -15,3 +15,11 @@
 
     <svg #board id="board"></svg>
 </div>
+<div class="debug" *ngIf="debug">
+    <div>{{ timer | async }}s</div>
+    <div *ngFor="let g of ghosts">
+        <div class="ghost ghosting" [ngClass]="g.name"></div>
+        <div>{{ g.name }} ({{ g.color }})</div>
+        <div>{{ g.state }}</div>
+    </div>
+</div>

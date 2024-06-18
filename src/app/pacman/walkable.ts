@@ -1,22 +1,16 @@
-import { at, set } from "lodash-es";
 import { BehaviorSubject, Observable } from "rxjs";
 
 export type Maze = number[][];
+export type Mood = 'homed' | 'chase' | 'scatter' | 'frightened';
+export type Chaser = 'blinky' | 'pinky' | 'inky' | 'clyde';
 export type Direction = 'd'|'u'|'l'|'r';
-export type Mood = 'homed' | 'chase' | 'scatter' | 'freed' | 'exiting' | 'frightened';
 
-const coords = (n: { x: number, y: number }): [number, number] => {
-    return [ Math.round(n.x), Math.round(n.y) ];
-}
+export type Position = { x: number, y: number };
+export type Waypoint = Position & { dir: Direction };
 
-
-const onGrid = (n: { x: number, y: number }, k: number = 0.3): boolean  => {
-    const [nx, ny] = coords(n);
-    const  dx = Math.abs(n.x - nx);
-    const  dy = Math.abs(n.y - ny);
-    return dx < k && dy < k;
-} 
-
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
 const randomDir = (k: string): Direction => {
     const dir = ['u', 'd', 'l', 'r'].filter(d => d !== k);
     const i = Math.floor(Math.random()*dir.length);
@@ -24,22 +18,119 @@ const randomDir = (k: string): Direction => {
     return dir[i] as Direction;
 }
 
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+const directions: { [key in Direction]: Position } = {
+    l: { x: -1, y:  0 },
+    r: { x:  1, y:  0 },
+    u: { x:  0, y: -1 },
+    d: { x:  0, y:  1 },
+};
+
+const reverse: { [key in Direction]: Direction } = { 
+    d: 'u', 
+    u: 'd', 
+    r: 'l', 
+    l: 'r' 
+};
+
+
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+const coords = (p: Position): Position => {
+    return { x: Math.round(p.x), y: Math.round(p.y) };
+}
+
+const onGrid = (n: Position, k: number = 0.3): boolean  => {
+    const { x, y } = coords(n);
+    return Math.abs(n.x - x) < k && Math.abs(n.y - y) < k;
+} 
+
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+function isOff(maze: Maze, { x, y }: Position): boolean {
+    return (x < 0 || x >= maze[0].length || y < 0 || y >= maze.length);
+}
+
+function isWall(maze: Maze, { x, y }: Position): boolean {
+    return (maze[y][x] === 1);
+}
+
+function isOk(maze: Maze, { x, y }: Position): boolean {
+    return !isOff(maze, { x, y }) && !isWall(maze, { x, y });
+}
+
+function areEquals(p0: Position, p1: Position): boolean {
+    return p0.x === p1.x && p0.y === p1.y;
+}
+
+function add(p0: Position, p1: Position): Position {
+    return { x: p0.x + p1.x, y: p0.y + p1.y };
+}
+
+function scale(p0: Position, n: number): Position {
+    return { x: n * p0.x, y: n * p0.y };
+}
+
+//////////////////////////////////////////////////////////////////////
+function findPath(p0: Position, p1: Position, maze: Maze): Waypoint[] | null {
+    const queue: { p: Position; path: Waypoint[] }[] = [{ p: p0, path: [] }];
+    const visited: boolean[][] = maze.map(row => row.map(() => false));
+
+    visited[p0.x][p0.y] = true;
+
+    while (queue.length > 0) {
+        const { p, path } = queue.shift()!;
+
+        if (areEquals(p, p1)) {
+            return path;
+        }
+
+        for (const [dir, d] of Object.entries(directions) as [Direction, Position][]) {
+            const q: Position = add(p, d);
+
+            if (isOk(maze, q) && !visited[q.x][q.y]) {
+                visited[q.x][q.y] = true;
+                queue.push({ p: q, path: [...path, { ...q, dir }] });
+            }
+        }
+    }
+
+    return null; // Path not found
+}
+
 //////////////////////////////////////////////////////////////////////  
-abstract class Walkable {
-    private x0: number;
-    private y0: number;
-    private d0: Direction;
-    
+//////////////////////////////////////////////////////////////////////  
+abstract class Walkable implements Position {
+    // Home Position
+    protected x0: number;
+    protected y0: number;
+    protected d0: Direction;
+
+    // Current Position
     public x: number;
     public y: number;
 
+    // Current Direction
     protected dir: Direction;
-    protected nextDir: Direction;
-    
-    protected v: number;
 
+    // Next Direction
+    protected nextDir: Direction;
+
+    // Speed
+    protected v: number;
+    
+    get coords(): Position {
+        return coords(this);
+    }
+
+    get home(): Position {
+        return { x: this.x0, y: this.y0 };
+    }
+
+    ///////////////////////////////////////////////////////////
     constructor(x: number, y: number, dir: Direction) {
-        this.v = 1.0;
+        this.v = 0.1;
         
         this.x   = this.x0 = x;
         this.y   = this.y0 = y;
@@ -47,6 +138,7 @@ abstract class Walkable {
         this.nextDir = dir;
     }
 
+    ///////////////////////////////////////////////////////////
     protected reborn(): void {
         this.x = this.x0;
         this.y = this.y0;
@@ -56,43 +148,33 @@ abstract class Walkable {
 
 
     protected distance(p: Walkable): number {
-        const [px, py] = coords(p);
-        const [gx, gy] = coords(this);
-        return Math.abs(px-gx) + Math.abs(py-gy);
+        return Math.abs(this.x - p.x) + Math.abs(this.y - p.y);
     }
 
-    protected get coords(): [number, number] {
-        return coords(this);
-    }
 
-    protected nextPos(maze: Maze, dir: Direction): { x: number, y: number } | null {
-        const d = this.v * 0.1;
-        let kx=0, x = this.x;
-        let ky=0, y = this.y;
-
-        switch (dir) {
-            case 'd':   ky =  1; y += ky*d;     break;
-            case 'u':   ky = -1; y += ky*d;     break;
-            case 'r':   kx =  1; x += kx*d;     break;
-            case 'l':   kx = -1; x += kx*d;     break;
-        }
-
-        const [j, i] = coords({ x: x+kx/2, y: y+ky/2 });
-        return (maze[i][j] !== 1) ? { x, y } : null;
+    protected nextPos(maze: Maze, dir: Direction): Position | null {
+        // const [dx, dy] = directions[dir];
+        const d = directions[dir];
+        const p = add(this, scale(d, this.v));
+        // const x = this.x + this.v * dx;
+        // const y = this.y + this.v * dy;
+        // const K = Coords({ x: x+dx/2, y: y+dy/2 });
+        const q = coords(add(p, scale(d, 0.5)));
+        return isWall(maze, q) ? null : p;
     }
 
 
     protected moveOn(maze: Maze): boolean {
         if ( this.nextDir !== this.dir ) {
-            const reverse = { d: 'u', u: 'd', r: 'l', l: 'r' };
             if ( this.nextDir === reverse[this.dir] ) {
                 this.dir = this.nextDir;
             } else {
                 const next = this.nextPos(maze, this.nextDir); 
                 if (next && onGrid(next)) {
                     this.dir = this.nextDir;
-                    this.x = Math.round(next.x);
-                    this.y = Math.round(next.y);
+                    const p = coords(next);
+                    this.x = p.x;
+                    this.y = p.y;
                     return true;
                 }
             }
@@ -125,7 +207,7 @@ export class Pacman extends Walkable {
         return this.$score.asObservable();
     }
 
-     set score(s: number) {
+    protected set score(s: number) {
         this._score = s;
         this.$score.next(s);
     }
@@ -152,32 +234,22 @@ export class Pacman extends Walkable {
         this.$level.next(l);
     }
 
-    protected die(): void {
-        this.lives = this._lives - 1;
-    }
-
-    protected eat(n: number): void {
-        this.score = this._score + n;
-    }
-
     ///////////////////////////////////////////////////////////
-    set go(dir: Direction) {
-        this.nextDir = dir;
-    }
-
+    ///////////////////////////////////////////////////////////
     private _strong: boolean = false;
     get strong(): boolean {
         return this._strong;
     }
     
-    private set strong(s: boolean) {
+    protected set strong(s: boolean) {
         this._strong = s;
         setTimeout(() => this._strong = false, 15000);
     }
 
     ///////////////////////////////////////////////////////////
-    private _eater: (i: number, j:number) => void = () => {}; 
-    set onEating(eater: (i: number, j:number) => void) {
+    ///////////////////////////////////////////////////////////
+    private _eater: (p: Position) => void = () => {}; 
+    set onEating(eater: (p: Position) => void) {
         this._eater = eater;
     }
 
@@ -187,11 +259,31 @@ export class Pacman extends Walkable {
     }
 
     ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////
+    set go(dir: Direction) {
+        this.nextDir = dir;
+    }
+
+    get go(): Direction {
+        return this.dir;
+    }
+
+    ///////////////////////////////////////////////////////////
     constructor(x: number, y: number) {
         super(x, y, 'd');
         this.score = 0;
         this.lives = 3;
         this.level = 1;
+    }
+
+    ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////
+    protected die(): void {
+        this.lives = this._lives - 1;
+    }
+
+    protected eat(n: number): void {
+        this.score = this._score + n;
     }
 
     ///////////////////////////////////////////////////////////
@@ -206,12 +298,12 @@ export class Pacman extends Walkable {
         if (super.moveOn(maze)) {
             this.r = { d: 90, u: 270, r: 0, l: 180 }[this.dir];
 
-            const [j, i] = coords(this);
-            const pill = maze[i][j];
+            const { x, y } = this.coords;
+            const pill = maze[y][x];
 
             // Eating
             if (pill === 2 || pill === 4) {
-                maze[i][j] = 0;
+                maze[y][x] = 0;
                 if (pill === 4) {
                     this.strong = true;
                 }
@@ -221,22 +313,12 @@ export class Pacman extends Walkable {
                 this.eat(diet*meal);
 
                 if (this._eater) {
-                    this._eater(i, j);
+                    this._eater({ x, y });
                 }
             }
             return true;
         } else {
             return false;
-        }
-    }
-
-    lookAhead(n: number = 0): [number, number] {
-        const [x, y] = coords(this);
-        switch (this.dir) {
-            case 'd': return [x, y+n];
-            case 'u': return [x, y-n];
-            case 'r': return [x+n, y];
-            case 'l': return [x-n, y];
         }
     }
 }
@@ -245,57 +327,107 @@ export class Pacman extends Walkable {
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
 export class Ghost extends Walkable {
-    ghost: string;
-
-    private _cx: number;
-    private _cy: number;
-
-    private _state: Mood = 'homed';
-    private set state(s: Mood) {
-        console.log('state', s, this.ghost);
-        this._state = s;
-        if ( s === 'homed' ) {
-            setTimeout(() => this._state = 'freed', 1000);
-        }
-
-        if ( s === 'scatter' ) {
-            setTimeout(() => this._state = 'chase', 15000);
-        }
+    private ghost: Chaser;
+    get name(): string {
+        return this.ghost;
     }
-
-    private get state(): Mood {
-        return this._state;
+    
+    private _color: string = 'white';
+    get color(): string {
+        return this._color;
     }
 
     private pacman!: Pacman;
     chase(pacman: Pacman): void {
-        this.pacman = pacman;
+        this.pacman = pacman;    
+    }
+
+    // Path, Waypoints
+    private tick: boolean = false;
+    private path: Waypoint[] = [];
+
+    // Current Target
+    private _tx: number = 0;
+    private _ty: number = 0;
+
+    // Scatter Corner
+    private _cx: number;
+    private _cy: number;
+    
+    // State Machine
+    private t?: any;
+    private _state!: Mood;
+    private set state(s: Mood) {
+        this._state = s;
+
+        if ( this.t ) {
+            clearInterval(this.t);
+        }
+
+        if ( s === 'homed' ) {
+            this.t = setTimeout(() => this.state = 'scatter', 3000);
+        }
+
+        if ( s === 'scatter' ) {
+            this.t = setTimeout(() => this.state = 'chase', 15000);
+        }
+
+        if ( s === 'frightened' ) {
+            this.t = setTimeout(() => this.state = 'chase', 15000);
+        }
+
+        if ( s === 'chase' ) {
+            this.t = setInterval(() => this.tick = true, 15000);
+        }
+    }
+
+    get state(): Mood {
+        return this._state;
     }
 
     get weak (): boolean {
         return this._state === 'frightened';
     }
 
-    constructor(x: number, y: number, dir: Direction, ghost: string, cx: number, cy: number) {
+    get go(): Direction {
+        return this.dir;
+    }
+
+    get going(): Direction {
+        return this.nextDir;
+    }
+
+    get pathway(): Waypoint[] {
+        return this.path;
+    }
+
+    get target(): Position {
+        return coords({ x: this._tx, y: this._ty });
+    }
+
+    set target(p: Position) {
+        this._tx = p.x;
+        this._ty = p.y;
+    }
+
+    get corner(): Position {
+        return { x: this._cx, y: this._cy };
+    }
+
+    ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////
+    constructor(x: number, y: number, dir: Direction, ghost: Chaser, color: string, cx: number, cy: number) {
         super(x, y, dir);
         this.ghost = ghost;
+        this._color = color;
         this._cx = cx;
         this._cy = cy;
         this.reborn();
     }
         
-    override reborn(): void {
+    public override reborn(): void {
         super.reborn();
         this.state = 'homed';
-    }
-
-
-    protected randomWalk(maze: Maze): void {
-        if ( onGrid(this) ) {
-            while ( !this.nextPos(maze, this.nextDir) ) {
-                this.nextDir = randomDir(this.nextDir);
-            }
-        }
     }
 
 
@@ -305,132 +437,93 @@ export class Ghost extends Walkable {
 
 
     public override moveOn(maze: Maze): boolean {
-        if ( onGrid(this) && this.ghost === 'blinky') {
-            const [i, j] = coords(this);
-            console.log('state', this.state, this.ghost, i, j);
-        }
-
-        const strong = this.pacman && this.pacman.strong;
-
-        if ( this.state === 'chase' && strong ) {
-            this.state = 'frightened';
-        }
-
-        if ( this.state === 'frightened' && !strong ) {
-            this.state = 'chase';
-        }
-
-        if (  this.state === 'homed' ) {
-            this.randomWalk(maze);
-        }
-
-        if ( this.state === 'freed' ) {
-            if ( onGrid(this) ) {
-                if ( coords(this)[0] === 10 ) {
-                    this.nextDir = 'u';
-                    this.state = 'exiting';
-                } else {
-                    this.randomWalk(maze);            
-                }
-            }
-        }
-
-        if ( this.state === 'exiting' ) {
-            const [j, i] = coords(this);
-            if ( i === 9 && j === 10 ) {
-                this.state = 'scatter';
-                // this.nextDir = 'd';
-                // this.randomWalk(maze);
-            }
-        }
-
-        if ( this.state === 'frightened' ) {
-            this.randomWalk(maze);
-            }
-            
-        if (  this.state === 'scatter' ) {
-            this.randomWalk(maze);
-            // this.nextDir = this.target(maze);
-        }
-
-        // Seek for the target
-        if ( this.state === 'chase') {
-            if ( onGrid(this) ) {
-                this.randomWalk(maze);
-                // this.nextDir = this.target(maze);
-            }
-        }
-
-        // Die or Kill            
-        if ( this.shocked() ) {
-            this.weak ? this.reborn() : this.pacman.reborn();
-        }
-
-        return super.moveOn(maze);
-    }
-
-    private shocked(): boolean {
         if ( !this.pacman ) {
             return false;
         }
 
-        const [gj, gi] = coords(this);
-        const [pj, pi] = coords(this.pacman);
+        if ( this.state === 'chase' && this.pacman.strong ) {
+            this.state = 'frightened';
+        }
 
-        return (gj === pj) && (gi === pi);
+        if ( this.state === 'frightened' && !this.pacman.strong ) {
+            this.state = 'chase';
+        }
+
+        // Wander or Follow a Path 
+        if ( onGrid(this) ) {
+            if (  this.state === 'homed' ) {
+                while ( !this.nextPos(maze, this.nextDir) ) {
+                    this.nextDir = randomDir(this.nextDir);
+                }
+            } else {
+                if ( this.tick || this.path.length === 0 ) { 
+                    this.updatePath(maze);
+                    this.tick = false;
+                }
+
+                if ( this.path.length > 0) {
+                    const next = this.path[0];
+                    if ( areEquals(this.coords, coords(next)) ) {
+                        this.path.shift();
+                    }
+ 
+                    this.nextDir = next.dir;
+                }
+            }
+        }
+
+        // Die or Kill            
+        if ( areEquals(this.coords, this.pacman.coords) ) {
+            this.path = [];
+            this.weak ? this.reborn() : this.pacman.reborn();
+            return false;
+        } else {
+            return super.moveOn(maze);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-    private target(maze: Maze): Direction {
-        let [i, j] = coords(this.pacman);
+    private updatePath(maze: Maze): void {
+        const lookAhead = (n: number): Position => {
+            const d = directions[this.pacman.go];
+            const p = this.pacman.coords;
+            let q = add(p, scale(d, n));
+            if ( isOff(maze, q) ) {
+                q = add(p, scale(d, -n));
+            }
 
-        if ( this.state === 'scatter' || this.state === 'frightened') {
-            [i, j] = [this._cx, this._cy];
+            while ( !isOk(maze, q) ) {   
+                q = add(q, d);
+                if ( isOff(maze, q) ) {
+                    return this.home;
+                }
+            }
+             
+            return q;
         }
+
 
         if ( this.state === 'chase' ) {
-            switch (this.ghost) {
-                case 'blinky': 
-                    [i, j] = coords(this.pacman);
-                    break;
-
-                case 'pinky':  
-                    [i, j] = this.pacman.lookAhead(4);
-                    break;
-
-                case 'inky':
-                    [i, j] = this.pacman.lookAhead(2);
-                    break;
-
-                case 'clyde':  
-                    if (this.distance() > 8) { 
-                        [i, j] = [this._cx, this._cy];
-                    } else {
-                        [i, j] = coords(this.pacman);
-                    }
-                    break;
-            }
+          switch (this.ghost) {
+            case 'blinky':  this.target = lookAhead(0); break;
+            case 'pinky':   this.target = lookAhead(4); break;
+            case 'inky':    this.target = lookAhead(2); break;
+            case 'clyde':   this.target = (this.distance() > 8) ? 
+                                          lookAhead(1) : 
+                                          this.corner;  break;
+          }
+        } else if ( this.state === 'scatter' ) {
+            this.target = this.corner;
+        } else if ( this.state === 'frightened' ) {
+            this.target = this.home;
         }
 
-        const dx = i - this.x;
-        const dy = j - this.y;
-    
-        const H = Math.abs(dx) > Math.abs(dy);
-        const h = (dx > 0) ? 'r' : 'l';
-        const v = (dy > 0) ? 'd' : 'u';
-        const op = { u: 'd', d: 'u', l: 'r', r: 'l' };
         
-        let dir;
-        const dirs = H ? [h, v, op[v], op[h]] : [v, h, op[h], op[v]] ;
-    
-        for (dir of dirs) {
-            if (this.nextPos(maze, dir as Direction)) {
-                break;
-            }
+        const path = findPath(this.coords, this.target, maze);
+        if (path) {
+            this.path = path;
         }
-
-        return dir as Direction;
-    }   
+    }
 }

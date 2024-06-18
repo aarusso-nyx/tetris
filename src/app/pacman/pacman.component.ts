@@ -1,9 +1,9 @@
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
-import { fromEvent } from 'rxjs';
+import { fromEvent, timer } from 'rxjs';
 import * as d3 from 'd3';
 
 import { wallMap } from './wallmap';
-import { Pacman, Ghost, Maze, Direction } from './walkable';
+import { Pacman, Ghost, Maze, Direction, Position } from './walkable';
 
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
@@ -18,13 +18,16 @@ export class PacmanComponent implements AfterViewInit{
   private svg:     any;
   private walls!:  Maze;
 
-  public  pacman = new Pacman(10, 13);
-  private ghosts = [
-    new Ghost( 9, 10, 'u', 'blinky', 1,  1),
-    new Ghost(11, 10, 'd', 'pinky',  1, 19),
-    new Ghost( 9, 11, 'l', 'inky',  21,  1),
-    new Ghost(11, 11, 'r', 'clyde', 21, 19)
+  public debug = true;
+  public pacman = new Pacman(10, 13);
+  public ghosts = [
+    new Ghost( 9, 10, 'u', 'blinky', 'red',     1,  1),
+    new Ghost(11, 10, 'd', 'pinky',  'cyan',   1, 21),
+    new Ghost( 9, 11, 'l', 'inky',   'pink',   19,  1),
+    new Ghost(11, 11, 'r', 'clyde',  'orange', 19, 21)
   ];
+
+  public timer = timer(0, 1000);
 
   ///////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////
@@ -51,12 +54,25 @@ export class PacmanComponent implements AfterViewInit{
     // Handle keyboard events
     fromEvent<KeyboardEvent>(document, 'keydown')
     .subscribe((event: KeyboardEvent) => {
-      this.pacman.go = (event.key[5].toLowerCase()) as Direction;
+      const key = event.key[5];
+      if (event.key === ' ') {
+        this.debug = !this.debug;
+        if ( !this.debug ) {
+          this.svg.selectAll('.coordinates').remove();
+          this.svg.selectAll('.path').remove();
+          this.svg.selectAll('.target').remove();
+        }
+        return;
+      }
+      if (key ) {
+        this.pacman.go = (key.toLowerCase()) as Direction;
+      }
+
     });
       
     // Handle eating events  
-    this.pacman.onEating = (i: number, j: number) => {
-      this.svg.selectAll(`[y="${i}"][x="${j}"]`).remove();
+    this.pacman.onEating = (p: Position) => {
+      this.svg.selectAll(`[y="${p.y}"][x="${p.x}"]`).remove();
     }
     
     // Game loop
@@ -66,7 +82,7 @@ export class PacmanComponent implements AfterViewInit{
 
       this.ghosts.forEach(ghost => ghost.moveOn(this.walls));
       this.drawGhosts();
-    }, 100);
+    }, 50);
   }
 
   ///////////////////////////////////////////////////////////
@@ -98,6 +114,47 @@ export class PacmanComponent implements AfterViewInit{
           .attr('height', 1)
           .attr('fill', (d: any) => `url(#${d.ghost})`)
           .attr('opacity', (d: any) => d.weak ? 0.5 : 1);
+
+    if (this.debug) {
+      this.drawPaths();
+    }
+  }
+
+  drawPaths() {
+    this.ghosts.forEach((ghost, i) => {
+      const dx = i%2 ? 0.75 : 0.25;
+      const dy = i<2 ? 0.75 : 0.25;  
+
+      this.svg.selectAll(`.path_${ghost.name}`).remove();
+        this.svg.append('g')
+            .attr('class', `path_${ghost.name}`)
+            .selectAll('text')
+            .data(ghost.pathway)
+            .enter()
+            .append('text')
+              .attr('x', (d: any) => d.x)
+              .attr('y', (d: any) => d.y)
+              .text((d: any) => d.dir)
+              .attr('fill', ghost.color )
+              .attr('font-size', 0.3)
+              .attr('text-anchor', 'middle')
+              .attr('alignment-baseline', 'middle')
+              .attr('transform', `translate(${dx}, ${dy})`);
+
+
+      this.svg.selectAll(`.target_${ghost.name}`).remove();
+        this.svg.append('g')
+            .attr('class', `target_${ghost.name}`)
+            .append('text')
+              .attr('x', ghost.target.x)
+              .attr('y', ghost.target.y)
+              .text('X')
+              .attr('fill', ghost.color)
+              .attr('font-size', 0.6)
+              .attr('text-anchor', 'middle')
+              .attr('alignment-baseline', 'middle')
+              .attr('transform', `translate(${dx}, ${dy})`);
+    });
   }
 
   drawBoard(grid: Maze) {
@@ -129,7 +186,32 @@ export class PacmanComponent implements AfterViewInit{
           .attr('y', (d: any) => d.y)
           .attr('width', 1)
           .attr('height', 1)
-          .attr('fill', (d: any) => `url(#${d.cell})`);
+          .attr('fill', (d: any) => `url(#${d.cell})`)
+
+    if (this.debug) {
+      this.drawCoordinates(walls);
+    }
+  }
+
+  drawCoordinates(walls: any[]) {
+    this.svg
+        .append('g')  
+        .attr('class', 'coordinates')
+        .selectAll('text')
+        .data(walls)
+        .enter()  
+          .append('text')
+          .attr('x', (d: any) => d.x+0.5)
+          .attr('y', (d: any) => d.y+0.5)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'middle')
+            .attr('font-size', 0.3)
+            .attr('font-family', 'Arial')
+            .attr('fill', 'white')
+            .attr('opacity', 0.5)
+            .text((d: any) => {
+              return `${d.x},${d.y}`;
+            });
   }
 
   ///////////////////////////////////////////////////////////
@@ -157,7 +239,7 @@ export class PacmanComponent implements AfterViewInit{
         .attr('cx', 0.5)
         .attr('cy', 0.5)
         .attr('r', 0.1)
-        .attr('fill', 'white');
+        .attr('fill', this.debug ? 'transparent' : 'white');
 
     // blink pill
     const pill = defs.append('pattern')
