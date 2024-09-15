@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { PacmanComponent } from './pacman/pacman.component';
 import { TetrisComponent } from './tetris/tetris.component';
+import { TermoComponent } from './termo/termo.component';
 
 const routes: Routes = [
     {
@@ -13,12 +14,16 @@ const routes: Routes = [
         component: PacmanComponent
     },
     {
+        path: 'termo',
+        component: TermoComponent
+    },
+    {
         path: '**',
-        redirectTo: 'pacman'
+        redirectTo: 'termo'
     },
     {
         path: '',
-        redirectTo: 'pacman',
+        redirectTo: 'termo',
         pathMatch: 'full'
     }
 ];

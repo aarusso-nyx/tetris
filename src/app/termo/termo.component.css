@@ -1,0 +1,113 @@
+.container {
+  font-family: 'Roboto', sans-serif;
+  background-color: #121213;
+  color: #ffffff;
+  text-align: center;
+  padding: 20px;
+}
+
+#game-settings,
+#message {
+  margin-bottom: 20px;
+}
+
+#game-settings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+#game-settings label {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+#game-settings select {
+  width: 220px;
+  padding: 10px;
+  font-size: 1em;
+  margin-bottom: 15px;
+  border: 2px solid #3a3a3c;
+  border-radius: 5px;
+  background-color: #1a1a1b;
+  color: #ffffff;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  position: relative;
+}
+
+#game-settings select:focus {
+  outline: none;
+  border-color: #ffffff;
+}
+
+#game-settings button {
+  padding: 12px 24px;
+  font-size: 1em;
+  background-color: #538d4e;
+  border: none;
+  border-radius: 5px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#game-settings button:hover {
+  background-color: #6aaa64;
+}
+
+#game-board {
+  display: grid;
+  gap: 5px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.tile {
+  width: 50px;
+  height: 50px;
+  border: 2px solid #3a3a3c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  text-transform: uppercase;
+  background-color: #121213;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.tile.correct {
+  background-color: #538d4e;
+  border-color: #538d4e;
+}
+
+.tile.present {
+  background-color: #b59f3b;
+  border-color: #b59f3b;
+}
+
+.tile.absent {
+  background-color: #3a3a3c;
+  border-color: #3a3a3c;
+}
+
+#message {
+  font-size: 1.2em;
+}
+
+/* Responsive styling */
+@media (max-width: 600px) {
+
+  #game-settings select,
+  #game-settings button {
+    width: 80%;
+  }
+
+  .tile {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}

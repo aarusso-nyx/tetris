@@ -1,0 +1,47 @@
+/* wordle-keyboard.component.css */
+
+#keyboard {
+    margin-top: 20px;
+}
+
+.keyboard-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.key {
+    width: 43px;
+    height: 58px;
+    margin: 2px;
+    background-color: #818384;
+    border: none;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    user-select: none;
+}
+
+.key.Delete {
+    width: 85px;
+    margin-left: 8px;
+}
+
+.key.Enter {
+    width: 120px;
+    margin-left: 8px;
+}
+
+.key.correct {
+    background-color: #538d4e;
+}
+
+.key.present {
+    background-color: #b59f3b;
+}
+
+.key.absent {
+    background-color: #3a3a3c;
+}

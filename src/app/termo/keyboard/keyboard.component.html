@@ -1,0 +1,8 @@
+<div id="keyboard">
+    <div class="keyboard-row" *ngFor="let row of keyRows">
+        <button class="key {{key}}" [ngClass]="usedKeys[key.toLowerCase()]" 
+                (click)="onKeyPress(key)" *ngFor="let key of row"> 
+            {{ key }}
+        </button>
+    </div>
+</div>

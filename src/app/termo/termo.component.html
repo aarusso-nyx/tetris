@@ -1,0 +1,21 @@
+<div class="container">
+  <div id="game-settings" *ngIf="!gameStarted" @fadeInOut>
+    <label for="word-length">Choose word length:</label>
+    <select id="word-length" [(ngModel)]="wordLength">
+      <option *ngFor="let l of wordLengths" [value]="l">
+        {{ l }} Letters
+      </option>
+    </select>
+    <button (click)="startGame()">Start Game</button>
+  </div>
+
+  <div id="game-board" [ngStyle]="{'grid-template-columns': 'repeat(' + wordLength + ', 50px)'}">
+    <div class="tile" [ngClass]="tile.class" *ngFor="let tile of tiles" [@flip]="tile.state">
+      {{ tile.letter }}
+    </div>
+  </div>
+
+  <app-keyboard *ngIf="gameStarted" [usedKeys]="usedKeys" (keyPress)="handleKeyPress($event)"></app-keyboard>
+
+  <div id="message">{{ message }}</div>
+</div>
